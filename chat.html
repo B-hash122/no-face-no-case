@@ -1,0 +1,105 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Chat with Admin - NO FACE NO CASE{% endblock %}
+
+{% block extra_js %}
+<script>
+var socket = io();
+var currentUserId = {{ current_user.id }};
+var adminId = {{ admin.id }};
+
+socket.on('connect', function() {
+    socket.emit('join', {'user_id': currentUserId});
+    console.log('Connected to chat server');
+});
+
+socket.on('receive_message', function(data) {
+    if (data.sender_id == adminId) {
+        addMessageToChat(data.message, data.timestamp, false);
+        // Play notification sound
+        var audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+        audio.play();
+    }
+});
+
+function sendMessage() {
+    var messageInput = document.getElementById('messageInput');
+    var message = messageInput.value.trim();
+    
+    if (message) {
+        socket.emit('send_message', {
+            'sender_id': currentUserId,
+            'receiver_id': adminId,
+            'message': message
+        });
+        
+        addMessageToChat(message, new Date().toLocaleString(), true);
+        messageInput.value = '';
+    }
+}
+
+function addMessageToChat(message, timestamp, isSent) {
+    var messagesDiv = document.getElementById('chatMessages');
+    var messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'} fade-in`;
+    messageDiv.innerHTML = `
+        <div><i class="fas ${isSent ? 'fa-user' : 'fa-user-tie'}"></i> <strong>${isSent ? 'You' : 'Admin'}</strong></div>
+        <div class="mt-1">${escapeHtml(message)}</div>
+        <small class="${isSent ? 'text-light' : 'text-muted'}">${timestamp}</small>
+    `;
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+
+document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+// Load existing messages on page load
+window.onload = function() {
+    var messagesDiv = document.getElementById('chatMessages');
+    {% for msg in messages %}
+        var messageDiv = document.createElement('div');
+        messageDiv.className = `message ${msg.sender_id == current_user.id ? 'message-sent' : 'message-received'}`;
+        messageDiv.innerHTML = `
+            <div><i class="fas ${msg.sender_id == current_user.id ? 'fa-user' : 'fa-user-tie'}"></i> <strong>${msg.sender_id == current_user.id ? 'You' : 'Admin'}</strong></div>
+            <div class="mt-1">{{ msg.message }}</div>
+            <small class="${msg.sender_id == current_user.id ? 'text-light' : 'text-muted'}">{{ msg.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+        `;
+        messagesDiv.appendChild(messageDiv);
+    {% endfor %}
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card fade-in">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <h4 class="mb-0"><i class="fas fa-comments"></i> Live Chat with Support</h4>
+            <small>Our admin team is here to help you</small>
+        </div>
+        <div class="card-body">
+            <div id="chatMessages" class="chat-container mb-3" style="height: 500px; overflow-y: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; background: #f9f9f9;"></div>
+            <div class="input-group">
+                <input type="text" id="messageInput" class="form-control" placeholder="Type your message...">
+                <button class="btn btn-primary" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+            <small class="text-muted mt-2 d-block">
+                <i class="fas fa-clock"></i> Admin typically responds within minutes
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}

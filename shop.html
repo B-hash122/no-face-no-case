@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Shop - Pacific Storm Products{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4 fade-in"><i class="fas fa-store"></i> Our Pacific Storm Collection</h1>
+
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-4 mb-4">
+            <div class="card product-card h-100 fade-in">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if product.category == 'Beverages' %}
+                            <i class="fas fa-mug-hot fa-4x text-primary"></i>
+                        {% elif product.category == 'Apparel' %}
+                            <i class="fas fa-tshirt fa-4x text-primary"></i>
+                        {% else %}
+                            <i class="fas fa-gift fa-4x text-primary"></i>
+                        {% endif %}
+                    </div>
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text text-muted">{{ product.description }}</p>
+                    <p class="text-muted"><i class="fas fa-tag"></i> {{ product.category }}</p>
+                    <h4 class="text-success">${{ "%.2f"|format(product.price) }}</h4>
+                    <p class="text-{% if product.stock_quantity > 10 %}success{% elif product.stock_quantity > 0 %}warning{% else %}danger{% endif %}">
+                        <i class="fas fa-boxes"></i> Stock: {{ product.stock_quantity }} units
+                    </p>
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#orderModal{{ product.id }}">
+                        <i class="fas fa-shopping-cart"></i> Order Now
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Modal -->
+        <div class="modal fade" id="orderModal{{ product.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <h5 class="modal-title"><i class="fas fa-shopping-cart"></i> Order {{ product.name }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ url_for('place_order', product_id=product.id) }}" method="POST">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Quantity</label>
+                                <input type="number" name="quantity" class="form-control" min="1" max="{{ product.stock_quantity }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Delivery Location</label>
+                                <button type="button" class="btn btn-secondary btn-sm mb-2 w-100" onclick="getLocationForOrder(this.form, {{ product.id }})">
+                                    <i class="fas fa-location-dot"></i> Share Live Location
+                                </button>
+                                <input type="hidden" name="location_lat" id="order_lat{{ product.id }}">
+                                <input type="hidden" name="location_lng" id="order_lng{{ product.id }}">
+                                <textarea name="location_address" class="form-control" rows="3" placeholder="Enter your full address" required></textarea>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> <strong>Total: ${{ "%.2f"|format(product.price) }} × quantity</strong>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Place Order</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function getLocationForOrder(form, productId) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            document.getElementById(`order_lat${productId}`).value = position.coords.latitude;
+            document.getElementById(`order_lng${productId}`).value = position.coords.longitude;
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`)
+                .then(response => response.json())
+                .then(data => {
+                    form.querySelector('[name="location_address"]').value = data.display_name;
+                });
+
+            alert('✓ Location captured successfully!');
+        }, function(error) {
+            alert('Unable to get location. Please enter address manually.');
+        });
+    } else {
+        alert('Geolocation not supported. Please enter address manually.');
+    }
+}
+</script>
+{% endblock %}

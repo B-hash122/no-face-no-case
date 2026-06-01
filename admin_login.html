@@ -1,0 +1,26 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Admin Login - NO FACE NO CASE{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white text-center">
+            <h3><i class="fas fa-shield-alt"></i> Admin Login</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label>Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-danger w-100">Login</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
